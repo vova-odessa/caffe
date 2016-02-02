@@ -73,6 +73,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <OutDir>..\bin</OutDir>
+    <TargetName>caffed</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -103,7 +105,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>USE_CUDNN;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>../include;../src;$(CUDA_PATH_V7_0)\include;../3rdparty/include;../3rdparty/include/openblas;../3rdparty/include/hdf5;../3rdparty\include\lmdb;$(CudaToolkitIncludeDir)</AdditionalIncludeDirectories>
     </ClCompile>
@@ -111,6 +113,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(CUDA_PATH_V7_0)\lib\x64;..\3rdparty\lib;%(AdditionalLibraryDirectories);$(CudaToolkitLibDir)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>gflagsd.lib;libglog.lib;libopenblas.dll.a;libprotobufd.lib;libprotoc.lib;leveldbd.lib;lmdbd.lib;libhdf5_D.lib;libhdf5_hl_D.lib;Shlwapi.lib;opencv_world300d.lib;opencv_ts300d.lib;cublas.lib;cublas_device.lib;curand.lib;cudart.lib;cuda.lib;cudnn.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
