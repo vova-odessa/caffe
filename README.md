@@ -2,7 +2,7 @@
 Forked from ([NVIDIA/caffe](https://github.com/NVIDIA/caffe))
 
 # Setup step:
-1. Unzip 3rdparty.7z
+1. Unzip '3rdparty.7z'
 2. Run  ./src/caffe/proto/extract_proto.bat to create caffe.pb.h, caffe.pb.cc and caffe_pb2.py
 3. Build project in Debug/Release mode.
 
