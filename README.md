@@ -1,4 +1,5 @@
-# Caffe port for VS2013 forked from (https://github.com/NVIDIA/caffe) 
+# Caffe port for VS2013 
+Forked from ([NVIDIA/caffe]https://github.com/NVIDIA/caffe) 
 
 # Setup step:
 1. Unzip 3rdparty.7z
