@@ -19,9 +19,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\tools\caffe.cpp">
-      <Filter>tools</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\caffe\proto\caffe.pb.cc">
       <Filter>proto</Filter>
     </ClCompile>
@@ -242,6 +239,9 @@
       <Filter>tools</Filter>
     </ClCompile>
     <ClCompile Include="..\src\caffe\syncedmem.cpp">
+      <Filter>tools</Filter>
+    </ClCompile>
+    <ClCompile Include="..\tools\caffe.cpp">
       <Filter>tools</Filter>
     </ClCompile>
   </ItemGroup>

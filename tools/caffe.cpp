@@ -1,4 +1,20 @@
+//#define GLOG_NO_ABBREVIATED_SEVERITIES
+//#define WIN32_LEAN_AND_MEAN
+//#include <windows.h>
+//#undef ERROR
+#include "caffe/caffe.hpp"
+#include "curl/curl.h"
+
 #include <glog/logging.h>
+#include <google/protobuf/stubs/common.h>
+#include <google/protobuf/generated_message_util.h>
+#include <google/protobuf/message.h>
+#include <google/protobuf/repeated_field.h>
+#include <google/protobuf/extension_set.h>
+#include <google/protobuf/generated_enum_reflection.h>
+#include <google/protobuf/unknown_field_set.h>
+
+
 
 #include <cstring>
 #include <map>
@@ -6,7 +22,7 @@
 #include <vector>
 
 #include "boost/algorithm/string.hpp"
-#include "caffe/caffe.hpp"
+
 
 using caffe::Blob;
 using caffe::Caffe;
