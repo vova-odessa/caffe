@@ -1,3 +1,15 @@
+# Caffe port for VS2013 
+Forked from ([NVIDIA/caffe](https://github.com/NVIDIA/caffe)) for using in DIGITS
+
+# Setup step:
+1. Unzip `3rdparty.7z` into the caffe root
+2. Run  `./src/caffe/proto/extract_proto.bat` to create `caffe.pb.h`, `caffe.pb.cc` and `caffe_pb2.py`
+3. Build project in Debug/Release mode.
+
+# MNIST test:
+1. Unzip `./examples/mnist/mnist_leveldb.7z` into `/examples/mnist/`
+2. Run `./train_lenet_debug.bat`  or `train_lenet_release.bat` according to your project settings
+
 # Caffe
 
 Caffe is a deep learning framework made with expression, speed, and modularity in mind.

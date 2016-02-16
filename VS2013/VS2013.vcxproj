@@ -107,7 +107,11 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
+<<<<<<< HEAD
       <PreprocessorDefinitions>_VARIADIC_MAX=10;USE_CUDNN;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+=======
+      <PreprocessorDefinitions>USE_CUDNN;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+>>>>>>> 547af8634f9f993cbc3b10aa530e9e0f2bcea91c
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(CUDA_PATH_V7_0)\include;../include;../src;../3rdparty/include;../3rdparty/include/openblas;../3rdparty/include/hdf5;../3rdparty/include/lmdb</AdditionalIncludeDirectories>
     </ClCompile>
