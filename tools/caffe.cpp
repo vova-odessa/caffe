@@ -1,9 +1,6 @@
-//#define GLOG_NO_ABBREVIATED_SEVERITIES
-//#define WIN32_LEAN_AND_MEAN
-//#include <windows.h>
-//#undef ERROR
+
 #include "caffe/caffe.hpp"
-#include "curl/curl.h"
+
 
 #include <glog/logging.h>
 #include <google/protobuf/stubs/common.h>
