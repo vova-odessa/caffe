@@ -1,17 +1,14 @@
 
-#include "caffe/caffe.hpp"
 
 
+
+#ifdef WITH_PYTHON_LAYER
+#include "boost/python.hpp"
+namespace bp = boost::python;
+#endif
+
+#include <gflags/gflags.h>
 #include <glog/logging.h>
-#include <google/protobuf/stubs/common.h>
-#include <google/protobuf/generated_message_util.h>
-#include <google/protobuf/message.h>
-#include <google/protobuf/repeated_field.h>
-#include <google/protobuf/extension_set.h>
-#include <google/protobuf/generated_enum_reflection.h>
-#include <google/protobuf/unknown_field_set.h>
-
-
 
 #include <cstring>
 #include <map>
@@ -19,6 +16,9 @@
 #include <vector>
 
 #include "boost/algorithm/string.hpp"
+#include "caffe/caffe.hpp"
+#include "caffe/util/gpu_memory.hpp"
+#include "caffe/util/signal_handler.h"
 
 
 using caffe::Blob;
@@ -30,14 +30,19 @@ using caffe::shared_ptr;
 using caffe::string;
 using caffe::Timer;
 using caffe::vector;
+
 using std::ostringstream;
-using caffe::MemoryHandlerActivator;
+
+
 
 DEFINE_int32(gpu, -1,
-    "Run in GPU mode on given device ID (Legacy switch, use -gpus).");
-DEFINE_string(gpus, "",
-    "Run in GPU mode on given device IDs separated by ','."
-    "Use '-gpus all' to run on all available GPUs.");
+    "Run in GPU mode on given device ID.");
+
+DEFINE_string(gpu, "",
+    "Optional; run in GPU mode on given device IDs separated by ','."
+    "Use '-gpu all' to run on all available GPUs. The effective training "
+    "batch size is multiplied by the number of devices.");
+
 DEFINE_string(solver, "",
     "The solver definition protocol buffer text file.");
 DEFINE_string(model, "",
@@ -45,10 +50,18 @@ DEFINE_string(model, "",
 DEFINE_string(snapshot, "",
     "Optional; the snapshot solver state to resume training.");
 DEFINE_string(weights, "",
+    "Optional; the pretrained weights to initialize finetuning. "
+    "Cannot be set simultaneously with snapshot.");
     "Optional; the pretrained weights to initialize finetuning, "
     "separated by ','. Cannot be set simultaneously with snapshot.");
 DEFINE_int32(iterations, 50,
     "The number of iterations to run.");
+DEFINE_string(sigint_effect, "stop",
+             "Optional; action to take when a SIGINT signal is received: "
+              "snapshot, stop or none.");
+DEFINE_string(sighup_effect, "snapshot",
+             "Optional; action to take when a SIGHUP signal is received: "
+             "snapshot, stop or none.");
 
 // A simple registry for caffe commands.
 typedef int (*BrewFunction)();
@@ -66,6 +79,10 @@ class __Registerer_##func { \
 __Registerer_##func g_registerer_##func; \
 }
 
+// Hack to convert macro to string
+#define STRINGIZE(m) #m
+#define STRINGIZE2(m) STRINGIZE(m)
+
 static BrewFunction GetBrewFunction(const caffe::string& name) {
   if (g_brew_map.count(name)) {
     return g_brew_map[name];
@@ -80,12 +97,11 @@ static BrewFunction GetBrewFunction(const caffe::string& name) {
   }
 }
 
+
+
 // Parse GPU ids or use all available devices
 static void get_gpus(vector<int>* gpus) {
-  if (FLAGS_gpu >= 0) {
-    FLAGS_gpus = "" + boost::lexical_cast<string>(FLAGS_gpu);
-  }
-  if (FLAGS_gpus == "all") {
+  if (FLAGS_gpu == "all") {
     int count = 0;
 #ifndef CPU_ONLY
     CUDA_CHECK(cudaGetDeviceCount(&count));
@@ -95,9 +111,9 @@ static void get_gpus(vector<int>* gpus) {
     for (int i = 0; i < count; ++i) {
       gpus->push_back(i);
     }
-  } else if (FLAGS_gpus.size()) {
+  } else if (FLAGS_gpu.size()) {
     vector<string> strings;
-    boost::split(strings, FLAGS_gpus, boost::is_any_of(","));
+    boost::split(strings, FLAGS_gpu, boost::is_any_of(","));
     for (int i = 0; i < strings.size(); ++i) {
       gpus->push_back(boost::lexical_cast<int>(strings[i]));
     }
@@ -105,6 +121,9 @@ static void get_gpus(vector<int>* gpus) {
     CHECK_EQ(gpus->size(), 0);
   }
 }
+
+
+
 
 // caffe commands to call by
 //     caffe <command> <args>
@@ -114,7 +133,11 @@ static void get_gpus(vector<int>* gpus) {
 
 // Device Query: show diagnostic information for a GPU device.
 int device_query() {
-  LOG(INFO) << "Querying GPUs " << FLAGS_gpus;
+  CHECK_GT(FLAGS_gpu, -1) << "Need a device ID to query.";
+  LOG(INFO) << "Querying device ID = " << FLAGS_gpu;
+  caffe::Caffe::SetDevice(FLAGS_gpu);
+  caffe::Caffe::DeviceQuery();
+  LOG(INFO) << "Querying GPUs " << FLAGS_gpu;
   vector<int> gpus;
   get_gpus(&gpus);
   for (int i = 0; i < gpus.size(); ++i) {
@@ -139,6 +162,23 @@ void CopyLayers(caffe::Solver<float>* solver, const std::string& model_list) {
   }
 }
 
+// Translate the signal effect the user specified on the command-line to the
+// corresponding enumeration.
+caffe::SolverAction::Enum GetRequestedAction(
+    const std::string& flag_value) {
+  if (flag_value == "stop") {
+    return caffe::SolverAction::STOP;
+  }
+  if (flag_value == "snapshot") {
+    return caffe::SolverAction::SNAPSHOT;
+  }
+  if (flag_value == "none") {
+    return caffe::SolverAction::NONE;
+  }
+  LOG(FATAL) << "Invalid signal effect \""<< flag_value << "\" was specified";
+  return caffe::SolverAction::NONE;
+}
+
 // Train / Finetune a model.
 int train() {
   CHECK_GT(FLAGS_solver.size(), 0) << "Need a solver definition to train.";
@@ -149,18 +189,46 @@ int train() {
   caffe::SolverParameter solver_param;
   caffe::ReadProtoFromTextFileOrDie(FLAGS_solver, &solver_param);
 
+  // If the gpu flag is not provided, allow the mode and device to be set
   // If the gpus flag is not provided, allow the mode and device to be set
   // in the solver prototxt.
-  if (FLAGS_gpu < 0 && FLAGS_gpus.size() == 0
-      && solver_param.solver_mode() == caffe::SolverParameter_SolverMode_GPU
-      && solver_param.has_device_id()) {
-    FLAGS_gpus = "" + boost::lexical_cast<string>(solver_param.device_id());
+  if (FLAGS_gpu < 0
+      && solver_param.solver_mode() == caffe::SolverParameter_SolverMode_GPU) {
+    FLAGS_gpu = solver_param.device_id();
+
+  if (FLAGS_gpu.size() == 0
+      && solver_param.solver_mode() == caffe::SolverParameter_SolverMode_GPU) {
+      if (solver_param.has_device_id()) {
+          FLAGS_gpu = ""  +
+              boost::lexical_cast<string>(solver_param.device_id());
+      } else {  // Set default GPU if unspecified
+          FLAGS_gpu = "" + boost::lexical_cast<string>(0);
+      }
   }
 
+  // Set device id and mode
+  if (FLAGS_gpu >= 0) {
+    LOG(INFO) << "Use GPU with device ID " << FLAGS_gpu;
+    Caffe::SetDevice(FLAGS_gpu);
+    Caffe::set_mode(Caffe::GPU);
+  } else {
+    LOG(INFO) << "Use CPU.";
+    Caffe::set_mode(Caffe::CPU);
   vector<int> gpus;
   get_gpus(&gpus);
   if (gpus.size() == 0) {
+    LOG(INFO) << "Use CPU.";
     Caffe::set_mode(Caffe::CPU);
+
+
+
+
+
+
+
+
+
+
   } else {
     ostringstream s;
     for (int i = 0; i < gpus.size(); ++i) {
@@ -173,21 +241,34 @@ int train() {
     Caffe::set_mode(Caffe::GPU);
     Caffe::set_solver_count(gpus.size());
   }
-#ifdef USE_CNMEM
-  MemoryHandlerActivator handler(gpus);
-#endif
 
-  shared_ptr<Solver<float> > solver(caffe::GetSolver<float>(solver_param));
+  LOG(INFO) << "Starting Optimization";
+  shared_ptr<caffe::Solver<float> >
+    solver(caffe::GetSolver<float>(solver_param));
+  caffe::SignalHandler signal_handler(
+        GetRequestedAction(FLAGS_sigint_effect),
+        GetRequestedAction(FLAGS_sighup_effect));
+
+  shared_ptr<caffe::Solver<float> >
+    solver(caffe::GetSolver<float>(solver_param));
+
+  solver->SetActionFunction(signal_handler.GetActionFunction());
 
   if (FLAGS_snapshot.size()) {
     LOG(INFO) << "Resuming from " << FLAGS_snapshot;
+    solver->Solve(FLAGS_snapshot);
     solver->Restore(FLAGS_snapshot.c_str());
   } else if (FLAGS_weights.size()) {
+    CopyLayers(&*solver, FLAGS_weights);
+    solver->Solve();
+
+
     CopyLayers(solver.get(), FLAGS_weights);
   }
 
   if (gpus.size() > 1) {
-    caffe::P2PSync<float>::run(solver, gpus);
+    caffe::P2PSync<float> sync(solver, NULL, solver->param());
+    sync.run(gpus);
   } else {
     LOG(INFO) << "Starting Optimization";
     solver->Solve();
@@ -206,6 +287,9 @@ int test() {
   CHECK_GT(FLAGS_weights.size(), 0) << "Need model weights to score.";
 
   // Set device id and mode
+  if (FLAGS_gpu >= 0) {
+    LOG(INFO) << "Use GPU with device ID " << FLAGS_gpu;
+    Caffe::SetDevice(FLAGS_gpu);
   vector<int> gpus;
   get_gpus(&gpus);
   if (gpus.size() != 0) {
@@ -216,6 +300,7 @@ int test() {
     LOG(INFO) << "Use CPU.";
     Caffe::set_mode(Caffe::CPU);
   }
+
   // Instantiate the caffe net.
   Net<float> caffe_net(FLAGS_model, caffe::TEST);
   caffe_net.CopyTrainedLayersFrom(FLAGS_weights);
@@ -273,6 +358,9 @@ int time() {
   CHECK_GT(FLAGS_model.size(), 0) << "Need a model definition to time.";
 
   // Set device id and mode
+  if (FLAGS_gpu >= 0) {
+    LOG(INFO) << "Use GPU with device ID " << FLAGS_gpu;
+    Caffe::SetDevice(FLAGS_gpu);
   vector<int> gpus;
   get_gpus(&gpus);
   if (gpus.size() != 0) {
@@ -283,6 +371,7 @@ int time() {
     LOG(INFO) << "Use CPU.";
     Caffe::set_mode(Caffe::CPU);
   }
+
   // Instantiate the caffe net.
   Net<float> caffe_net(FLAGS_model, caffe::TRAIN);
 
@@ -360,6 +449,8 @@ RegisterBrewFunction(time);
 int main(int argc, char** argv) {
   // Print output to stderr (while still logging).
   FLAGS_alsologtostderr = 1;
+  // Set version
+  gflags::SetVersionString(STRINGIZE2(CAFFE_VERSION));
   // Usage message.
   gflags::SetUsageMessage("command line brew\n"
       "usage: caffe <command> <args>\n\n"
@@ -370,8 +461,25 @@ int main(int argc, char** argv) {
       "  time            benchmark model execution time");
   // Run tool or show usage.
   caffe::GlobalInit(&argc, &argv);
+
+
+  // initialize gpu memory arena
+  vector<int> gpus;
+  get_gpus(&gpus);
+  caffe::gpu_memory::arena arena(gpus, caffe::gpu_memory::DefaultPool, false);
+
   if (argc == 2) {
     return GetBrewFunction(caffe::string(argv[1]))();
+#ifdef WITH_PYTHON_LAYER
+    try {
+#endif
+      return GetBrewFunction(caffe::string(argv[1]))();
+#ifdef WITH_PYTHON_LAYER
+    } catch (bp::error_already_set) {
+      PyErr_Print();
+      return 1;
+    }
+#endif
   } else {
     gflags::ShowUsageWithFlagsRestrict(argv[0], "tools/caffe");
   }

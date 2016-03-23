@@ -1,5 +1,6 @@
 #include <boost/thread.hpp>
 #include <glog/logging.h>
+#include <cmath>
 #include <cstdio>
 #include <ctime>
 #include <vector>
@@ -12,7 +13,6 @@
 #endif
 namespace caffe {
 
-static boost::shared_ptr<MemoryHandler> mem_handler;
 // Make sure each thread can have different values.
 static boost::thread_specific_ptr<Caffe> thread_instance_;
 
@@ -44,7 +44,7 @@ int64_t cluster_seedgen(void) {
   pid = _getpid();
 #endif
   s = time(NULL);
-  seed = abs(((s * 181) * ((pid - 83) * 359)) % 104729);
+  seed = std::abs(((s * 181) * ((pid - 83) * 359)) % 104729);
   return seed;
 }
 
@@ -179,7 +179,7 @@ void Caffe::SetDevice(const int device_id) {
   CURAND_CHECK(curandSetPseudoRandomGeneratorSeed(Get().curand_generator_,
       cluster_seedgen()));
 #ifdef USE_CUDNN
-  if (Get().cublas_handle_) CUDNN_CHECK(cudnnDestroy(Get().cudnn_handle_));
+  if (Get().cudnn_handle_) CUDNN_CHECK(cudnnDestroy(Get().cudnn_handle_));
   CUDNN_CHECK(cudnnCreate(&Get().cudnn_handle_));
 #endif
 }
@@ -415,3 +415,4 @@ const char* curandGetErrorString(curandStatus_t error) {
 #endif  // CPU_ONLY
 
 }  // namespace caffe
+

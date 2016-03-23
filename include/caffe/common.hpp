@@ -248,3 +248,4 @@ class MemoryHandlerActivator {
 }  // namespace caffe
 
 #endif  // CAFFE_COMMON_HPP_
+
