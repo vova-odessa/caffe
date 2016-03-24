@@ -11,6 +11,17 @@ function(caffe_get_current_includes includes_variable)
   list(FIND current_includes ${PROJECT_BINARY_DIR} __index)
   list(REMOVE_AT current_includes ${__index})
 
+  # removing numpy includes (since not required for client libs)
+  set(__toremove "")
+  foreach(__i ${current_includes})
+    if(${__i} MATCHES "python")
+      list(APPEND __toremove ${__i})
+    endif()
+  endforeach()
+  if(__toremove)
+    list(REMOVE_ITEM current_includes ${__toremove})
+  endif()
+
   caffe_list_unique(current_includes)
   set(${includes_variable} ${current_includes} PARENT_SCOPE)
 endfunction()
@@ -45,16 +56,25 @@ function(caffe_generate_export_configs)
     list(APPEND Caffe_DEFINITIONS -DCPU_ONLY)
   endif()
 
+  if(USE_OPENCV)
+    list(APPEND Caffe_DEFINITIONS -DUSE_OPENCV)
+  endif()
+
+  if(USE_LMDB)
+    list(APPEND Caffe_DEFINITIONS -DUSE_LMDB)
+    if (ALLOW_LMDB_NOLOCK)
+        list(APPEND Caffe_DEFINITIONS -DALLOW_LMDB_NOLOCK)
+    endif()
+  endif()
+
+  if(USE_LEVELDB)
+    list(APPEND Caffe_DEFINITIONS -DUSE_LEVELDB)
+  endif()
+
   if(NOT HAVE_CUDNN)
     set(HAVE_CUDNN FALSE)
   else()
     list(APPEND DEFINITIONS -DUSE_CUDNN)
-  endif()
-
-  if(NOT HAVE_CNMEM)
-    set(HAVE_CNMEM FALSE)
-  else()
-    list(APPEND DEFINITIONS -DUSE_CNMEM)
   endif()
 
   if(BLAS STREQUAL "MKL" OR BLAS STREQUAL "mkl")
@@ -83,7 +103,7 @@ function(caffe_generate_export_configs)
 
   configure_file("cmake/Templates/CaffeConfig.cmake.in" "${PROJECT_BINARY_DIR}/cmake/CaffeConfig.cmake" @ONLY)
 
-  # Install the CaffeConfig.cmake and export set to use wuth install-tree
+  # Install the CaffeConfig.cmake and export set to use with install-tree
   install(FILES "${PROJECT_BINARY_DIR}/cmake/CaffeConfig.cmake" DESTINATION ${install_cmake_suffix})
   install(EXPORT CaffeTargets DESTINATION ${install_cmake_suffix})
 

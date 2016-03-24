@@ -95,14 +95,14 @@ class P2PSync : public GPUParams<Dtype>, public Solver<Dtype>::Callback,
     return solver_;
   }
 
-  static void run(shared_ptr<Solver<Dtype> > root, const vector<int>& gpus);
+  void run(const vector<int>& gpus);
 
   // Divide the batch size by the number of solvers
   static void divide_batch_size(NetParameter* net);
 
  protected:
-  void on_start(Timer* timer, ostringstream* timing);
-  void on_gradients_ready(Timer* timer, ostringstream* timing);
+  void on_start();
+  void on_gradients_ready();
 
   void InternalThreadEntry();
 
