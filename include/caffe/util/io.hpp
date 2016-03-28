@@ -5,8 +5,6 @@
 #include <string>
 
 #include "google/protobuf/message.h"
-#include "hdf5.h"
-#include "hdf5_hl.h"
 
 #include "caffe/blob.hpp"
 #include "caffe/common.hpp"
@@ -15,9 +13,6 @@
 #ifdef _MSC_VER
 #include "mkstemp.h"
 #endif
-
-
-#define HDF5_NUM_DIMS 4
 
 namespace caffe {
 
@@ -32,9 +27,9 @@ inline void MakeTempFilename(string* temp_filename) {
   int fd = mkstemp(temp_filename_cstr);
   CHECK_GE(fd, 0) << "Failed to open a temporary file at: " << *temp_filename;
 #ifndef _MSC_VER 
-close(fd); 
+  close(fd);
 #else 
-_close(fd); 
+  _close(fd);
 #endif
   *temp_filename = temp_filename_cstr;
   delete[] temp_filename_cstr;
@@ -47,10 +42,10 @@ inline void MakeTempDir(string* temp_dirname) {
   // NOLINT_NEXT_LINE(runtime/printf)
   strcpy(temp_dirname_cstr, temp_dirname->c_str());
 #ifndef _MSC_VER 
-char* mkdtemp_result = mkdtemp(temp_dirname_cstr); 
+  char* mkdtemp_result = mkdtemp(temp_dirname_cstr);
 #else 
-errno_t mkdtemp_result = _mktemp_s(temp_dirname_cstr, sizeof(temp_dirname_cstr));
- #endif
+  errno_t mkdtemp_result = _mktemp_s(temp_dirname_cstr, sizeof(temp_dirname_cstr));
+#endif
   CHECK(mkdtemp_result != NULL)
       << "Failed to create a temporary directory at: " << *temp_dirname;
   *temp_dirname = temp_dirname_cstr;
@@ -137,6 +132,7 @@ inline bool ReadImageToDatum(const string& filename, const int label,
 bool DecodeDatumNative(Datum* datum);
 bool DecodeDatum(Datum* datum, bool is_color);
 
+#ifdef USE_OPENCV
 cv::Mat ReadImageToCVMat(const string& filename,
     const int height, const int width, const bool is_color);
 
@@ -152,20 +148,7 @@ cv::Mat DecodeDatumToCVMatNative(const Datum& datum);
 cv::Mat DecodeDatumToCVMat(const Datum& datum, bool is_color);
 
 void CVMatToDatum(const cv::Mat& cv_img, Datum* datum);
-
-template <typename Dtype>
-void hdf5_load_nd_dataset_helper(
-    hid_t file_id, const char* dataset_name_, int min_dim, int max_dim,
-    Blob<Dtype>* blob);
-
-template <typename Dtype>
-void hdf5_load_nd_dataset(
-    hid_t file_id, const char* dataset_name_, int min_dim, int max_dim,
-    Blob<Dtype>* blob);
-
-template <typename Dtype>
-void hdf5_save_nd_dataset(
-    const hid_t file_id, const string& dataset_name, const Blob<Dtype>& blob);
+#endif  // USE_OPENCV
 
 }  // namespace caffe
 
