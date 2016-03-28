@@ -19,7 +19,7 @@ DB* GetDB(DataParameter::DB backend) {
   default:
     LOG(FATAL) << "Unknown database backend";
   }
-  return nullptr;
+  return NULL;
 }
 
 DB* GetDB(const string& backend) {
@@ -34,7 +34,7 @@ DB* GetDB(const string& backend) {
   }
 #endif  // USE_LMDB
   LOG(FATAL) << "Unknown database backend";
-  return nullptr;
+  return NULL;
 }
 
 }  // namespace db
