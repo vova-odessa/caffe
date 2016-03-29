@@ -119,12 +119,19 @@ namespace caffe {
       }
 
       // make sure we don't ask for more that total device memory
-      dev_info_[i].free = min(dev_info_[cur_device].total,
-                                   dev_info_[cur_device].free);
-      dev_info_[i].free = min(props.totalGlobalMem,
-                                   dev_info_[cur_device].free);
-    }
-
+#ifdef _MSC_VER
+	  dev_info_[i].free = min(dev_info_[cur_device].total,
+		  dev_info_[cur_device].free);
+	  dev_info_[i].free = min(props.totalGlobalMem,
+		  dev_info_[cur_device].free);
+	}
+#else
+	  dev_info_[i].free = std::min(dev_info_[cur_device].total,
+		  dev_info_[cur_device].free);
+	  dev_info_[i].free = std::min(props.totalGlobalMem,
+		  dev_info_[cur_device].free);
+  }
+#endif // _MSC_VER
 
     switch ( mode_ ) {
       case CubPool:

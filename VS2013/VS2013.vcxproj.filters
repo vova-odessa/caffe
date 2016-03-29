@@ -17,9 +17,6 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="tools">
-      <UniqueIdentifier>{f37ab200-36d4-4a67-a7fb-2f46731a9172}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\caffe\proto\caffe.pb.cc">
@@ -282,9 +279,6 @@
     </ClCompile>
     <ClCompile Include="..\src\caffe\layers\absval_layer.cpp">
       <Filter>layers_cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\tools\caffe.cpp">
-      <Filter>tools</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

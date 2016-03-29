@@ -19,6 +19,12 @@ namespace boost { class mutex; }
 
 namespace caffe {
 
+#ifdef USE_CUDNN
+#define CUDNN_VERSION_MIN(major, minor, patch) \
+    (CUDNN_VERSION >= (major * 1000 + minor * 100 + patch))
+#endif
+
+
 /**
  * @brief An interface for the units of computation which can be composed into a
  *        Net.

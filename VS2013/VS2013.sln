@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VS2013", "VS2013.vcxproj", "{FC17456B-B8F2-423B-AF98-3CB3B849713B}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "caffelib", "VS2013.vcxproj", "{FC17456B-B8F2-423B-AF98-3CB3B849713B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "caffe", "caffe\caffe.vcxproj", "{299860A0-9092-4762-A8A6-7B599F6C65DA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,17 @@ Global
 		{FC17456B-B8F2-423B-AF98-3CB3B849713B}.Release|Win32.Build.0 = Release|Win32
 		{FC17456B-B8F2-423B-AF98-3CB3B849713B}.Release|x64.ActiveCfg = Release|x64
 		{FC17456B-B8F2-423B-AF98-3CB3B849713B}.Release|x64.Build.0 = Release|x64
+		{299860A0-9092-4762-A8A6-7B599F6C65DA}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{299860A0-9092-4762-A8A6-7B599F6C65DA}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{299860A0-9092-4762-A8A6-7B599F6C65DA}.Debug|Win32.ActiveCfg = Debug|Win32
+		{299860A0-9092-4762-A8A6-7B599F6C65DA}.Debug|Win32.Build.0 = Debug|Win32
+		{299860A0-9092-4762-A8A6-7B599F6C65DA}.Debug|x64.ActiveCfg = Debug|Win32
+		{299860A0-9092-4762-A8A6-7B599F6C65DA}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{299860A0-9092-4762-A8A6-7B599F6C65DA}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{299860A0-9092-4762-A8A6-7B599F6C65DA}.Release|Win32.ActiveCfg = Release|Win32
+		{299860A0-9092-4762-A8A6-7B599F6C65DA}.Release|Win32.Build.0 = Release|Win32
+		{299860A0-9092-4762-A8A6-7B599F6C65DA}.Release|x64.ActiveCfg = Release|x64
+		{299860A0-9092-4762-A8A6-7B599F6C65DA}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
