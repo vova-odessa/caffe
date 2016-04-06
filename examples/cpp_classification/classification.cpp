@@ -10,6 +10,10 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <vector>
 
 #ifdef USE_OPENCV
 using namespace caffe;  // NOLINT(build/namespaces)
@@ -26,6 +30,8 @@ class Classifier {
              const string& label_file);
 
   std::vector<Prediction> Classify(const cv::Mat& img, int N = 5);
+  std::vector<float> Classify(const std::string &img_path);
+  size_t GetLabelSize(){ return labels_.size(); }
 
  private:
   void SetMean(const string& mean_file);
@@ -114,6 +120,17 @@ std::vector<Prediction> Classifier::Classify(const cv::Mat& img, int N) {
   }
 
   return predictions;
+}
+
+std::vector<float> Classifier::Classify(const std::string &img_path)
+{
+	cv::Mat img = cv::imread(img_path);
+	if (!img.empty()){
+		return Predict(img);
+	}
+	else{
+		return vector<float>(GetLabelSize(), -1);
+	}
 }
 
 /* Load the mean file in binaryproto format. */
@@ -225,12 +242,27 @@ void Classifier::Preprocess(const cv::Mat& img,
         == net_->input_blobs()[0]->cpu_data())
     << "Input channels are not wrapping the input layer of the network.";
 }
+std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
+	std::stringstream ss(s);
+	std::string item;
+	while (std::getline(ss, item, delim)) {
+		elems.push_back(item);
+	}
+	return elems;
+}
+
+
+std::vector<std::string> split(const std::string &s, char delim) {
+	std::vector<std::string> elems;
+	split(s, delim, elems);
+	return elems;
+}
 
 int main(int argc, char** argv) {
-  if (argc != 6) {
+  if (argc < 6) {
     std::cerr << "Usage: " << argv[0]
               << " deploy.prototxt network.caffemodel"
-              << " mean.binaryproto labels.txt img.jpg" << std::endl;
+              << " mean.binaryproto labels.txt img.jpg/img_list.txt out_list.txt[optional]" << std::endl;
     return 1;
   }
 
@@ -243,19 +275,50 @@ int main(int argc, char** argv) {
   Classifier classifier(model_file, trained_file, mean_file, label_file);
 
   string file = argv[5];
+  string out_file = argc == 7 ? argv[6] : "predictions.txt";
 
   std::cout << "---------- Prediction for "
             << file << " ----------" << std::endl;
+  if (file.substr(file.find_last_of(".") + 1) != "txt"){
+	  cv::Mat img = cv::imread(file, -1);
+	  CHECK(!img.empty()) << "Unable to decode image " << file;
+	  std::vector<Prediction> predictions = classifier.Classify(img);
 
-  cv::Mat img = cv::imread(file, -1);
-  CHECK(!img.empty()) << "Unable to decode image " << file;
-  std::vector<Prediction> predictions = classifier.Classify(img);
+	  /* Print the top N predictions. */
+	  for (size_t i = 0; i < predictions.size(); ++i) {
+		  Prediction p = predictions[i];
+		  std::cout << std::fixed << std::setprecision(4) << p.second << " - \""
+			  << p.first << "\"" << std::endl;
+	  }
+  }
+  else{
+	  std::ifstream ifile(file.c_str());
+	  std::ofstream ofile(out_file.c_str());
 
-  /* Print the top N predictions. */
-  for (size_t i = 0; i < predictions.size(); ++i) {
-    Prediction p = predictions[i];
-    std::cout << std::fixed << std::setprecision(4) << p.second << " - \""
-              << p.first << "\"" << std::endl;
+	  if(ifile.is_open()){
+		  string line;
+		  while (getline(ifile, line)) {
+			  if (line.empty()) continue;
+
+			  std::vector<std::string> line_parsed = split(line, ' ');
+			  if (line_parsed.size() > 0){
+				  std::string img_path = line_parsed.front();
+				  std::cout << img_path << std::endl;
+				  ofile << img_path;
+
+				  vector<float> predictions = classifier.Classify(img_path);
+				  for (size_t i(0); i < predictions.size(); i++)
+					  ofile << " " << predictions[i];
+				  ofile << std::endl;
+			  }
+		  }
+		  ifile.close();
+		  ofile.close();
+	  }
+	  else{
+		  std::cout << "Could not open file " << file << std::endl;
+		  return -1;
+	  }
   }
 }
 #else

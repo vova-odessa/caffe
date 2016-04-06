@@ -1,8 +1,12 @@
 from __future__ import print_function
+import sys
+sys.path.append('C:\Projects\git\caffe\caffe_2\caffe\python')
 from caffe import layers as L, params as P, to_proto
 from caffe.proto import caffe_pb2
 
 # helper function for common structures
+
+
 
 def conv_relu(bottom, ks, nout, stride=1, pad=0, group=1):
     conv = L.Convolution(bottom, kernel_size=ks, stride=stride,
@@ -50,6 +54,7 @@ def make_net():
 
     with open('test.prototxt', 'w') as f:
         print(caffenet('/path/to/caffe-val-lmdb', batch_size=50, include_acc=True), file=f)
-
+import sys
 if __name__ == '__main__':
+
     make_net()
