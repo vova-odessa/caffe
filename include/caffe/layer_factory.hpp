@@ -65,10 +65,10 @@ class LayerRegistry {
   // Adds a creator.
   static void AddCreator(const string& type, Creator creator) {
     CreatorRegistry& registry = Registry();
-#ifndef _MSC_VER
-    CHECK_EQ(registry.count(type), 0)
-        << "Layer type " << type << " already registered.";
-#endif
+// #ifndef _MSC_VER
+    // CHECK_EQ(registry.count(type), 0)
+        // << "Layer type " << type << " already registered.";
+// #endif
     registry[type] = creator;
   }
 
